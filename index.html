@@ -582,7 +582,7 @@ section {
   aspect-ratio: 4/5;
   background-size: cover;
   background-position: center;
-  background-image: url("images/day-twin-shade-mountain.jpg");
+  background-image: url("images/day-villa-sofa.jpg");
   position: relative;
   overflow: hidden;
 }
@@ -774,7 +774,7 @@ section {
 .g-9 { grid-column: span 3; grid-row: span 1;
   background-image: url("images/day-maple-shade.jpg"); }
 .g-10 { grid-column: span 3; grid-row: span 1;
-  background-image: url("images/day-sectional-villa.jpg"); }
+  background-image: url("images/day-sectional-angle.jpg"); }
 .g-11 { grid-column: span 2; grid-row: span 1;
   background-image: url("images/detail-stone-pebble.jpg"); }
 .g-12 { grid-column: span 4; grid-row: span 1;
@@ -851,7 +851,7 @@ section {
 }
 
 .v-1 .value-card-img { background-image: url("images/empty-ridge-wide.jpg"); }
-.v-2 .value-card-img { background-image: url("images/day-twin-shade-mountain.jpg"); }
+.v-2 .value-card-img { background-image: url("images/empty-grass-fresh.jpg"); }
 .v-3 .value-card-img { background-image: url("images/empty-west-highvill.jpg"); }
 
 @media (max-width: 900px) {
@@ -989,7 +989,7 @@ section {
   aspect-ratio: 4/3;
   background-size: cover;
   background-position: center;
-  background-image: url("images/indoor-bedroom-to-terrace.jpg");
+  background-image: url("images/indoor-living-feature-wall.jpg");
   position: relative;
 }
 .indoor-imgs .big::after {
@@ -1003,8 +1003,8 @@ section {
   background-size: cover;
   background-position: center;
 }
-.indoor-imgs .small.s-1 { background-image: url("images/day-livingroom-door.jpg"); }
-.indoor-imgs .small.s-2 { background-image: url("images/indoor-living-feature-wall.jpg"); }
+.indoor-imgs .small.s-1 { background-image: url("images/detail-side-flow.jpg"); }
+.indoor-imgs .small.s-2 { background-image: url("images/detail-door-closeup.jpg"); }
 
 .indoor-text h3 {
   font-family: var(--display);
@@ -2076,7 +2076,7 @@ footer a:hover { color: var(--gold-soft); }
 <!-- ═══════════════════════════════════════════════════════════
      KAKAO MAP SDK
      ═══════════════════════════════════════════════════════════ -->
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=dbdb4fa10ca44c8e1d4d6aef2e0e5a7c&autoload=false"></script>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=dbdb4fa10ca44c8e1d4d6aef2e0e5a7c&autoload=false&libraries=services"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      SCRIPT
@@ -2115,55 +2115,77 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 });
 
 // ─── Kakao Map ───
-// Uses public Kakao Maps JavaScript API. Falls back to static iframe if SDK fails to load.
-const lat = 37.6007325;
-const lng = 126.9419581;
+// Tries Kakao geocoder with road address first; falls back to coordinates if needed; OSM iframe as last resort.
+const FALLBACK_LAT = 37.5990; // verified vicinity of 홍은동 11-111
+const FALLBACK_LNG = 126.9418;
 const placeName = '서대문센트럴아이파크';
-const address = '서울특별시 서대문구 홍은중앙로11길 31';
+const roadAddress = '서울 서대문구 홍은중앙로11길 31';
+const jibunAddress = '서울 서대문구 홍은동 11-111';
 
 function initKakaoMap() {
   if (typeof kakao === 'undefined' || !kakao.maps) {
-    fallbackMap();
+    fallbackOSM();
     return;
   }
   kakao.maps.load(function() {
     const container = document.getElementById('kakao-map');
-    const options = {
-      center: new kakao.maps.LatLng(lat, lng),
+    // Initial map - center will be updated once geocoder resolves
+    const map = new kakao.maps.Map(container, {
+      center: new kakao.maps.LatLng(FALLBACK_LAT, FALLBACK_LNG),
       level: 4
-    };
-    const map = new kakao.maps.Map(container, options);
-
-    const markerPosition = new kakao.maps.LatLng(lat, lng);
-    const marker = new kakao.maps.Marker({ position: markerPosition });
-    marker.setMap(map);
-
-    const iwContent = `<div style="padding:14px 18px;font-family:'Pretendard Variable',sans-serif;font-size:13px;line-height:1.6;min-width:220px;">
-      <div style="font-family:'DM Serif Display',serif;font-size:16px;color:#2a2018;margin-bottom:6px;">${placeName}</div>
-      <div style="color:#a89c88;font-size:12px;">${address}</div>
-    </div>`;
-    const infowindow = new kakao.maps.InfoWindow({
-      content: iwContent,
-      removable: false
     });
-    infowindow.open(map, marker);
-
-    // Disable zoom on scroll - let the user scroll the page
     map.setZoomable(false);
+
+    if (kakao.maps.services && kakao.maps.services.Geocoder) {
+      const geocoder = new kakao.maps.services.Geocoder();
+      // Try road address first
+      geocoder.addressSearch(roadAddress, function(result, status) {
+        if (status === kakao.maps.services.Status.OK && result.length) {
+          placeMarker(map, parseFloat(result[0].y), parseFloat(result[0].x));
+        } else {
+          // Try jibun address
+          geocoder.addressSearch(jibunAddress, function(r2, s2) {
+            if (s2 === kakao.maps.services.Status.OK && r2.length) {
+              placeMarker(map, parseFloat(r2[0].y), parseFloat(r2[0].x));
+            } else {
+              placeMarker(map, FALLBACK_LAT, FALLBACK_LNG);
+            }
+          });
+        }
+      });
+    } else {
+      placeMarker(map, FALLBACK_LAT, FALLBACK_LNG);
+    }
   });
 }
 
-function fallbackMap() {
-  // If Kakao SDK fails (e.g. invalid app key, network), drop in OSM iframe as backup
+function placeMarker(map, lat, lng) {
+  const pos = new kakao.maps.LatLng(lat, lng);
+  map.setCenter(pos);
+  const marker = new kakao.maps.Marker({ position: pos });
+  marker.setMap(map);
+
+  const iwContent = `<div style="padding:14px 18px;font-family:'Pretendard Variable',sans-serif;font-size:13px;line-height:1.6;min-width:240px;">
+    <div style="font-family:'DM Serif Display',serif;font-size:16px;color:#2a2018;margin-bottom:6px;">${placeName}</div>
+    <div style="color:#a89c88;font-size:12px;">${roadAddress}<br/>(${jibunAddress})</div>
+  </div>`;
+  const infowindow = new kakao.maps.InfoWindow({
+    content: iwContent,
+    removable: false
+  });
+  infowindow.open(map, marker);
+}
+
+function fallbackOSM() {
   const container = document.getElementById('kakao-map');
   const iframe = document.createElement('iframe');
-  iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.005}%2C${lat-0.003}%2C${lng+0.005}%2C${lat+0.003}&layer=mapnik&marker=${lat}%2C${lng}`;
+  iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${FALLBACK_LNG-0.005}%2C${FALLBACK_LAT-0.003}%2C${FALLBACK_LNG+0.005}%2C${FALLBACK_LAT+0.003}&layer=mapnik&marker=${FALLBACK_LAT}%2C${FALLBACK_LNG}`;
   iframe.style.cssText = 'width:100%;height:100%;border:0;';
   iframe.loading = 'lazy';
   container.appendChild(iframe);
 }
 
-// Initialize after a tick to allow SDK to load
+// Initialize after page load
 window.addEventListener('load', () => {
   setTimeout(initKakaoMap, 300);
 });
@@ -2175,10 +2197,7 @@ if (location.hash === '#check') {
     'day-maple-shade.jpg',
     'day-wide-twin-shade.jpg',
     'day-villa-sofa.jpg',
-    'day-sectional-villa.jpg',
     'day-sectional-angle.jpg',
-    'day-livingroom-door.jpg',
-    'day-twin-shade-mountain.jpg',
     'day-shade-open-sky.jpg',
     'day-sectional-clean.jpg',
     'empty-west-highvill.jpg',
@@ -2192,7 +2211,6 @@ if (location.hash === '#check') {
     'night-sofa-flowers-2.jpg',
     'night-flowers-vase.jpg',
     'night-sectional-cityview.jpg',
-    'indoor-bedroom-to-terrace.jpg',
     'indoor-living-feature-wall.jpg',
     'exterior-courtyard-landscaping.jpg',
     'exterior-street-mountain.jpg',
@@ -2210,7 +2228,7 @@ if (location.hash === '#check') {
     border: 1px solid #c2553a; border-radius: 4px;
     box-shadow: 0 12px 32px rgba(0,0,0,0.4);
   `;
-  panel.innerHTML = '<strong style="color:#d97758;font-size:13px;">Image Health Check</strong><br><span style="color:#a89c88;">Testing 27 required images...</span><br><br>';
+  panel.innerHTML = '<strong style="color:#d97758;font-size:13px;">Image Health Check</strong><br><span style="color:#a89c88;">Testing 23 required images...</span><br><br>';
   const list = document.createElement('div');
   panel.appendChild(list);
   document.body.appendChild(panel);
