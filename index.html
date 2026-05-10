@@ -852,7 +852,7 @@ section {
 
 .v-1 .value-card-img { background-image: url("images/empty-ridge-wide.jpg"); }
 .v-2 .value-card-img { background-image: url("images/empty-grass-fresh.jpg"); }
-.v-3 .value-card-img { background-image: url("images/empty-west-highvill.jpg"); }
+.v-3 .value-card-img { background-image: url("images/night-sofa-flowers-1.jpg"); }
 
 @media (max-width: 900px) {
   .features-grid { grid-template-columns: 1fr; }
@@ -1221,7 +1221,7 @@ section {
 }
 
 /* ============================================================
-   08. LOCATION — Kakao Map
+   08. LOCATION — Google Map
    ============================================================ */
 .location {
   background: var(--ink);
@@ -1267,7 +1267,8 @@ section {
   width: 100%;
   background: #2a2a2e;
 }
-#kakao-map { width: 100%; height: 100%; }
+#map-wrap-inner { width: 100%; height: 100%; }
+#map-wrap-inner iframe { display: block; }
 .map-wrap::before {
   content: "";
   position: absolute;
@@ -1991,7 +1992,7 @@ footer a:hover { color: var(--gold-soft); }
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════
-     08. LOCATION — Kakao Map
+     08. LOCATION — Google Map
      ═══════════════════════════════════════════════════════════ -->
 <div class="location" id="location">
   <div class="location-head">
@@ -2009,7 +2010,15 @@ footer a:hover { color: var(--gold-soft); }
   </div>
 
   <div class="map-wrap">
-    <div id="kakao-map"></div>
+    <div id="map-wrap-inner">
+      <iframe
+        src="https://maps.google.com/maps?q=%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C%20%EC%84%9C%EB%8C%80%EB%AC%B8%EA%B5%AC%20%ED%99%8D%EC%9D%80%EC%A4%91%EC%95%99%EB%A1%9C11%EA%B8%B8%2031&t=m&z=16&output=embed&iwloc=near"
+        title="서대문센트럴아이파크 위치 — 서울특별시 서대문구 홍은중앙로11길 31"
+        width="100%" height="100%" style="border:0;"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allowfullscreen></iframe>
+    </div>
   </div>
 
   <div class="access stagger">
@@ -2074,9 +2083,9 @@ footer a:hover { color: var(--gold-soft); }
 </footer>
 
 <!-- ═══════════════════════════════════════════════════════════
-     KAKAO MAP SDK
+     MAP — Google Maps embed
      ═══════════════════════════════════════════════════════════ -->
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=dbdb4fa10ca44c8e1d4d6aef2e0e5a7c&autoload=false&libraries=services"></script>
+<!-- Map: Google Maps embed (address-based, no API key needed) -->
 
 <!-- ═══════════════════════════════════════════════════════════
      SCRIPT
@@ -2114,81 +2123,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
   });
 });
 
-// ─── Kakao Map ───
-// Tries Kakao geocoder with road address first; falls back to coordinates if needed; OSM iframe as last resort.
-const FALLBACK_LAT = 37.5990; // verified vicinity of 홍은동 11-111
-const FALLBACK_LNG = 126.9418;
-const placeName = '서대문센트럴아이파크';
-const roadAddress = '서울 서대문구 홍은중앙로11길 31';
-const jibunAddress = '서울 서대문구 홍은동 11-111';
-
-function initKakaoMap() {
-  if (typeof kakao === 'undefined' || !kakao.maps) {
-    fallbackOSM();
-    return;
-  }
-  kakao.maps.load(function() {
-    const container = document.getElementById('kakao-map');
-    // Initial map - center will be updated once geocoder resolves
-    const map = new kakao.maps.Map(container, {
-      center: new kakao.maps.LatLng(FALLBACK_LAT, FALLBACK_LNG),
-      level: 4
-    });
-    map.setZoomable(false);
-
-    if (kakao.maps.services && kakao.maps.services.Geocoder) {
-      const geocoder = new kakao.maps.services.Geocoder();
-      // Try road address first
-      geocoder.addressSearch(roadAddress, function(result, status) {
-        if (status === kakao.maps.services.Status.OK && result.length) {
-          placeMarker(map, parseFloat(result[0].y), parseFloat(result[0].x));
-        } else {
-          // Try jibun address
-          geocoder.addressSearch(jibunAddress, function(r2, s2) {
-            if (s2 === kakao.maps.services.Status.OK && r2.length) {
-              placeMarker(map, parseFloat(r2[0].y), parseFloat(r2[0].x));
-            } else {
-              placeMarker(map, FALLBACK_LAT, FALLBACK_LNG);
-            }
-          });
-        }
-      });
-    } else {
-      placeMarker(map, FALLBACK_LAT, FALLBACK_LNG);
-    }
-  });
-}
-
-function placeMarker(map, lat, lng) {
-  const pos = new kakao.maps.LatLng(lat, lng);
-  map.setCenter(pos);
-  const marker = new kakao.maps.Marker({ position: pos });
-  marker.setMap(map);
-
-  const iwContent = `<div style="padding:14px 18px;font-family:'Pretendard Variable',sans-serif;font-size:13px;line-height:1.6;min-width:240px;">
-    <div style="font-family:'DM Serif Display',serif;font-size:16px;color:#2a2018;margin-bottom:6px;">${placeName}</div>
-    <div style="color:#a89c88;font-size:12px;">${roadAddress}<br/>(${jibunAddress})</div>
-  </div>`;
-  const infowindow = new kakao.maps.InfoWindow({
-    content: iwContent,
-    removable: false
-  });
-  infowindow.open(map, marker);
-}
-
-function fallbackOSM() {
-  const container = document.getElementById('kakao-map');
-  const iframe = document.createElement('iframe');
-  iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${FALLBACK_LNG-0.005}%2C${FALLBACK_LAT-0.003}%2C${FALLBACK_LNG+0.005}%2C${FALLBACK_LAT+0.003}&layer=mapnik&marker=${FALLBACK_LAT}%2C${FALLBACK_LNG}`;
-  iframe.style.cssText = 'width:100%;height:100%;border:0;';
-  iframe.loading = 'lazy';
-  container.appendChild(iframe);
-}
-
-// Initialize after page load
-window.addEventListener('load', () => {
-  setTimeout(initKakaoMap, 300);
-});
+// Map: Google Maps embed iframe handles location display directly in HTML.
 
 // ─── Image health check (#check) ───
 if (location.hash === '#check') {
